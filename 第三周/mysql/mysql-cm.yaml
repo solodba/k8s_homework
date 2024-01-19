@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-cfg
+  namespace: wordpress-ns
+data:
+  my.cnf: |
+    [mysqld]
+    character-set-server = utf8mb4
+    innodb_file_per_table = ON

@@ -1,0 +1,5 @@
+作业:
+    1、部署MySQL, 将数据存储在OpenEBS Jiva卷上
+    2、部署Wordpress, 将数据存储在nfs-csi卷上
+    3、使用Secret配置MySQL, 提供几个敏感数据;同时使用ConfigMap为MySQL提供配置文件, 设定使用UTF8字符集, 并且每表使用单独表空间
+        innodb_file_per_table = ON

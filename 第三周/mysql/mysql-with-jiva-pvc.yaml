@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+  namespace: wordpress-ns
+  labels:
+    app: mysql-pod
+spec:
+  containers:
+    - name: mysql
+      image: mysql:8.0
+      imagePullPolicy: IfNotPresent
+      ports:
+        - name: mysql-port
+          containerPort: 3306
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql.root.pwd
+              optional: false
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql.user
+              optional: false
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql.pwd
+              optional: false
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql.db
+              optional: false
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "400m"
+          memory: "512Mi"
+      startupProbe:
+        tcpSocket:
+          port: mysql-port
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 10
+      livenessProbe:
+        tcpSocket:
+          port: mysql-port
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+      readinessProbe:
+        exec:
+          command:
+            - "/bin/sh"
+            - "-c"
+            - 'mysql -uroot -pRoot_123 -h127.0.0.1 -e"select 1"'
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+      volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: mysql-config
+          mountPath: /etc/my.cnf
+          subPath: my.cnf
+  volumes:
+    - name: mysql-data
+      persistentVolumeClaim:
+        claimName: openebs-jiva-csi-pvc
+    - name: mysql-config
+      configMap:
+        name: mysql-cfg
+        optional: false
