@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-svc
+  namespace: wordpress-ns
+  labels:
+    app: wordpress-svc
+spec:
+  ports:
+    - name: wordpress-svc-port
+      protocol: TCP
+      port: 80
+      targetPort: 80
+      nodePort: 30080
+  type: NodePort
+  selector: 
+    app: wordpress-pod

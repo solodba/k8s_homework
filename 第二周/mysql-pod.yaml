@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql-pod
+  namespace: wordpress-ns
+  labels:
+    app: mysql-pod
+spec:
+  containers:
+    - name: mysql
+      image: mysql:latest
+      ports:
+        - name: mysql-port
+          containerPort: 3306
+      env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: "Root_123"
+        - name: MYSQL_USER
+          value: "w_user"
+        - name: MYSQL_PASSWORD
+          value: "w_pass"
+        - name: MYSQL_DATABASE
+          value: "wordpress"
+      resources:
+        requests:
+          cpu: "200m"
+          memory: "256Mi"
+        limits:
+          cpu: "400m"
+          memory: "512Mi"
+      startupProbe:
+        tcpSocket:
+          port: mysql-port
+        initialDelaySeconds: 0
+        periodSeconds: 10
+        failureThreshold: 10
+      livenessProbe:
+        tcpSocket:
+          port: mysql-port
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+      readinessProbe:
+        exec:
+          command:
+            - "/bin/sh"
+            - "-c"
+            - 'mysql -uroot -pRoot_123 -h127.0.0.1 -e"select 1"'
+        initialDelaySeconds: 5
+        periodSeconds: 5
+        timeoutSeconds: 2
+        failureThreshold: 3
+      volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql    
+  volumes:
+    - name: mysql-data
+      persistentVolumeClaim:
+        claimName: mysql-pvc
