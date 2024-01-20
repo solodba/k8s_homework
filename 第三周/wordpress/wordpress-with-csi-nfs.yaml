@@ -14,13 +14,28 @@ spec:
           containerPort: 80
       env:
         - name: WORDPRESS_DB_USER
-          value: "w_user"
+          valueFrom:
+            secretRefKey:
+              name: mysql-secret
+              key: mysql.user
+              optional: false
         - name: WORDPRESS_DB_PASSWORD
-          value: "w_pass"
+          valueFrom:
+            secretRefKey:
+              name: mysql-secret
+              key: mysql.pwd
+              optional: false
         - name: WORDPRESS_DB_HOST
-          value: "mysql-svc:3306"
+          valueFrom:
+            secretRefKey:
+              name: mysql-secret
+              key: mysql.host
+              optional: false
         - name: WORDPRESS_DB_NAME
-          value: "wordpress"
+          valueFrom:
+            name: mysql-secret
+            key: mysql.db
+            optional: false
       resources:
         requests:
           cpu: "125m"
@@ -57,4 +72,4 @@ spec:
   volumes:
     - name: wordpress-data
       persistentVolumeClaim:
-        claimName: wordpress-pvc
+        claimName: pvc-csi-nfs
