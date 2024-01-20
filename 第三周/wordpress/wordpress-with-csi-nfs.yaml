@@ -33,10 +33,10 @@ spec:
               optional: false
         - name: WORDPRESS_DB_NAME
           valueFrom:
-          secretKeyRef:
-            name: mysql-secret
-            key: mysql.db
-            optional: false
+            secretKeyRef:
+              name: mysql-secret
+              key: mysql.db
+              optional: false
       resources:
         requests:
           cpu: "125m"
