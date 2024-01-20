@@ -2,6 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: pvc-csi-nfs
+  namespace: wordpress-ns
 spec:
   volumeMode: Filesystem
   accessModes:
