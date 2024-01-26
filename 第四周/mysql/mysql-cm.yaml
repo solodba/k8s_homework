@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql
+  namespace: blog
+data:
+  primary.cnf: |
+    # Apply this config only on the primary.
+    [mysql]
+    default-character-set=utf8mb4
+    [mysqld]
+    log-bin
+    character-set-server=utf8mb4
+    innodb_file_per_table = ON
+    [client]
+    default-character-set=utf8mb4
+
+  replica.cnf: |
+    # Apply this config only on replicas.
+    [mysql]
+    default-character-set=utf8mb4
+    [mysqld]
+    super-read-only    
+    character-set-server=utf8mb4
+    innodb_file_per_table = ON
+    [client]
+    default-character-set=utf8mb4

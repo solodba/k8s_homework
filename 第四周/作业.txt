@@ -1,0 +1,4 @@
+作业:
+    1、使用StatefulSet工作负载型控制器资源部署主从复制的MySQL, 将数据存储在OpenEBS Jiva卷上;
+    2、使用Deployment工作负载型控制器资源部署Wordpress, 将数据存储在NFS CSI支持多路读写的卷上;
+    3、使用LoadBalancer类型的Service, 将Wordpress开放到集群外部;
