@@ -86,4 +86,4 @@ spec:
       volumes:
         - name: wordpress-data
           persistentVolumeClaim:
-            claimName: pvc-csi-nfs
+            claimName: pvc-openebs-nfs
