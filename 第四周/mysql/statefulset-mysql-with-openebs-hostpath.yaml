@@ -182,7 +182,7 @@ spec:
       namespace: blog
     spec:
       accessModes: ["ReadWriteOnce"]
-      storageClassName: openebs-jiva-csi
+      storageClassName: openebs-hostpath
       resources:
         requests:
           storage: 2Gi

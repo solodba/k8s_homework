@@ -17,6 +17,12 @@ apt-get update
 apt-get install open-iscsi
 systemctl enable --now iscsid
 
-# 部署java operator
+# 部署jiva operator
 # kubectl apply -f https://openebs.github.io/charts/jiva-operator.yaml
 kubectl apply -f jiva-operator.yaml
+
+三、部署支持多路读写的NFS服务
+kubectl apply -f nfs-operator.yaml
+
+四、部署支持多路读写的NFS存储类
+kubectl apply -f nfs-storageclass.yaml
