@@ -21,8 +21,5 @@ systemctl enable --now iscsid
 # kubectl apply -f https://openebs.github.io/charts/jiva-operator.yaml
 kubectl apply -f jiva-operator.yaml
 
-三、部署支持多路读写的NFS服务
+三、部署支持多路读写的NFS服务,内置有创建存储类,可以关联jiva
 kubectl apply -f nfs-operator.yaml
-
-四、部署支持多路读写的NFS存储类
-kubectl apply -f nfs-storageclass.yaml
