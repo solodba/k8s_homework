@@ -62,3 +62,10 @@ root@master:~# curl -k -H "Authorization: Bearer 67fcfe.4e73377262622882" -k htt
   },
   "code": 403
 }
+
+# kubectl使用token访问API Server ---> 在没有kubeconfig配置文件的节点执行
+root@node1:~# kubectl --server https://192.168.1.100:6443/ --token='9e49fd.13f6c7cd0d91784e' --certificate-authority='/etc/kubernetes/pki/ca.crt' get pods
+Error from server (Forbidden): pods is forbidden: User "test1" cannot list resource "pods" in API group "" in the namespace "default"
+
+root@node1:~# kubectl --server https://192.168.1.100:6443/ --token='67fcfe.4e73377262622882' --certificate-authority='/etc/kubernetes/pki/ca.crt' get pods
+Error from server (Forbidden): pods is forbidden: User "test2" cannot list resource "pods" in API group "" in the namespace "default"
