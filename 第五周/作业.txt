@@ -1,0 +1,8 @@
+作业:
+    1、使用StatefulSet工作负载型控制器资源部署主从复制的MySQL, 将数据存储在OpenEBS hostpath卷上;
+    2、使用Deployment工作负载型控制器资源部署Wordpress, 将数据存储在OpenEBS nfs支持多路读写的卷上, 要求OpenEBS nfs后端使用openebs-jiva卷;
+    3、使用LoadBalancer类型的Service, 将Wordpress开放到集群外部;
+    4、创建多个用户认证到API Server:
+        static token认证, 两用户
+        x509证书认证, 两用户
+        而且创建两个kubeconfig文件, 打包这些认证信息;

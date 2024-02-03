@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: blog
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: wordpress-pod
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      name: wordpress-pod
+      labels:
+        app: wordpress-pod
+    spec:
+      containers:
+        - name: wordpress
+          image: wordpress:latest
+          ports:
+            - name: wordpress-port
+              containerPort: 80
+          env:
+            - name: WORDPRESS_DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql.user
+                  optional: false
+            - name: WORDPRESS_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql.pwd
+                  optional: false
+            - name: WORDPRESS_DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql.host
+                  optional: false
+            - name: WORDPRESS_DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql.db
+                  optional: false
+          resources:
+            requests:
+              cpu: "125m"
+              memory: "256Mi"
+            limits:
+              cpu: "250m"
+              memory: "512Mi"
+          startupProbe:
+            tcpSocket:
+              port: wordpress-port
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 40
+          livenessProbe:
+            tcpSocket:
+              port: wordpress-port
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "curl -s http://127.0.0.1"
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 3
+          volumeMounts:
+            - name: wordpress-data
+              mountPath: /var/www/html 
+      volumes:
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: pvc-openebs-nfs
