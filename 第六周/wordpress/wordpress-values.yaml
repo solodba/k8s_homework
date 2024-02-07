@@ -12,6 +12,7 @@ ingress:
 mariadb:
   enabled: false
 persistence:
+  accessModes: ["ReadWriteMany"]
   storageClass: openebs-rwx
 wordpressPassword: admin
 wordpressUsername: admin
