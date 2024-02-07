@@ -1,0 +1,17 @@
+externalDatabase:
+  database: wp_db
+  host: mysql-primary.blog.svc.cluster.local
+  password: wp_pass
+  port: 3306
+  user: wp_user
+ingress:
+  enabled: true
+  hostname: blog.example.com
+  ingressClassName: nginx
+  pathType: Prefix
+mariadb:
+  enabled: false
+persistence:
+  storageClass: openebs-rwx
+wordpressPassword: admin
+wordpressUsername: admin
