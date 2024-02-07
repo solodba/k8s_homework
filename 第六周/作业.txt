@@ -1,0 +1,6 @@
+作业:
+    1、使用helm部署出主从复制的mysql，和wordpress;
+    2、使用helm部署harbor;
+    3、扩展: 使用helm部署两个harbor，并配置它们的复制关系;
+    4、扩展: 使用helm部署openebs;
+    5、将Image推送至Harbor上;
