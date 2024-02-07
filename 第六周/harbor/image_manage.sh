@@ -4,6 +4,14 @@ wget https://github.com/containerd/nerdctl/releases/download/v1.7.2/nerdctl-1.7.
 tar xvf nerdctl-1.7.2-linux-amd64.tar.gz -C /usr/local/bin/
 nerdctl version
 nerdctl --help | grep toml
+mkdir /etc/nerdctl
+vim /etc/nerdctl/nerdctl.toml
+################################################################################
+namespace = "k8s.io"
+debug = false
+debug_full = false
+insecure_registry = true
+################################################################################
 nerdctl ps
 nerdctl -n k8s.io ps
 
