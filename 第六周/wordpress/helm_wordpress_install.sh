@@ -26,3 +26,14 @@ wordpress                  LoadBalancer   10.109.28.4      192.168.1.141   80:32
 root@master:~# kubectl get ingresses -n blog
 NAME        CLASS   HOSTS              ADDRESS         PORTS   AGE
 wordpress   nginx   blog.example.com   192.168.1.140   80      12m
+root@master:~# kubectl get pvc -n blog
+NAME                     STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS       VOLUMEATTRIBUTESCLASS   AGE
+data-mysql-primary-0     Bound    pvc-7b064c7e-9497-48c4-89ab-a11b20263a08   8Gi        RWO            openebs-hostpath   <unset>                 153m
+data-mysql-secondary-0   Bound    pvc-62934d48-bd4b-42df-abbb-efb6cfdb8d88   8Gi        RWO            openebs-hostpath   <unset>                 153m
+wordpress                Bound    pvc-a1c189bd-f1a0-4a50-9e0c-d83013896bd4   10Gi       RWX            openebs-rwx        <unset>                 13m
+root@master:~# kubectl get pv
+NAME                                       CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                                                  STORAGECLASS       VOLUMEATTRIBUTESCLASS   REASON   AGE
+pvc-0d3ec3f0-9a4f-4bab-8b9e-30061cea3cda   10Gi       RWO            Delete           Bound    openebs/nfs-pvc-a1c189bd-f1a0-4a50-9e0c-d83013896bd4   openebs-hostpath   <unset>                          13m
+pvc-62934d48-bd4b-42df-abbb-efb6cfdb8d88   8Gi        RWO            Delete           Bound    blog/data-mysql-secondary-0                            openebs-hostpath   <unset>                          153m
+pvc-7b064c7e-9497-48c4-89ab-a11b20263a08   8Gi        RWO            Delete           Bound    blog/data-mysql-primary-0                              openebs-hostpath   <unset>                          153m
+pvc-a1c189bd-f1a0-4a50-9e0c-d83013896bd4   10Gi       RWX            Delete           Bound    blog/wordpress                                         openebs-rwx        <unset>                          13m
