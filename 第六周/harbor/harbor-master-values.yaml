@@ -1,0 +1,58 @@
+expose:
+  type: ingress
+  tls:
+    enabled: true  
+    certSource: auto
+  ingress:
+    hosts:
+      core: registry.master.codehorse.com
+      notary: notary.master.codehorse.com
+    controller: default
+    annotations: 
+      kubernetes.io/ingress.class: "nginx"
+
+ipFamily:
+  ipv4:
+    enabled: true
+  ipv6:
+    enabled: false
+ 
+
+externalURL: https://registry.master.codehorse.com
+
+# 持久化存储配置部分
+persistence:
+  enabled: true 
+  resourcePolicy: "keep"
+  persistentVolumeClaim:        # 定义Harbor各个组件的PVC持久卷
+    registry:          # registry组件（持久卷）
+      storageClass: "openebs-hostpath"           # 前面创建的StorageClass，其它组件同样配置
+      accessMode: ReadWriteOnce          # 卷的访问模式，需要修改为ReadWriteOnce
+      size: 5Gi
+    chartmuseum:     # chartmuseum组件（持久卷）
+      storageClass: "openebs-hostpath"
+      accessMode: ReadWriteOnce
+      size: 5Gi
+    jobservice:
+      jobLog:
+        storageClass: "openebs-hostpath"
+        accessMode: ReadWriteOnce
+        size: 1Gi
+      #scanDataExports:
+      #  storageClass: "openebs-hostpath"
+      #  accessMode: ReadWriteOnce
+      #  size: 1Gi
+    database:        # PostgreSQl数据库组件
+      storageClass: "openebs-hostpath"
+      accessMode: ReadWriteOnce
+      size: 2Gi
+    redis:    # Redis缓存组件
+      storageClass: "openebs-hostpath"
+      accessMode: ReadWriteOnce
+      size: 2Gi
+    trivy:         # Trity漏洞扫描
+      storageClass: "openebs-hostpath"
+      accessMode: ReadWriteOnce
+      size: 5Gi
+
+harborAdminPassword: "Root_123"
