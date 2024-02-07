@@ -1,0 +1,11 @@
+architecture: replication
+auth:
+  database: wp_db
+  password: wp_pass
+  replicationPassword: repl_123
+  rootPassword: Root_123
+  username: wp_user
+global:
+  storageClass: openebs-hostpath
+secondary:
+  replicaCount: 1
