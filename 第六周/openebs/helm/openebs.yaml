@@ -1,0 +1,1505 @@
+---
+# Source: openebs/charts/jiva/templates/priority-class.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: openebs-jiva-csi-controller-critical
+value: 9e+08
+globalDefault: false
+description: "This priority class should be used for the OpenEBS CSI driver controller deployment only."
+---
+# Source: openebs/charts/jiva/templates/priority-class.yaml
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: openebs-jiva-csi-node-critical
+value: 9.00001e+08
+globalDefault: false
+description: "This priority class should be used for the OpenEBS CSI driver node deployment only."
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: openebs-jiva-csi-controller-sa
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+  namespace: openebs
+---
+# Source: openebs/charts/jiva/templates/csi-node-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-jiva-csi-node-sa
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-node"
+    release: openebs
+    component: "openebs-jiva-csi-node"
+    openebs.io/component-name: "openebs-jiva-csi-node"
+  namespace: openebs
+---
+# Source: openebs/charts/jiva/templates/jiva-operator-rbac.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-jiva-operator
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+---
+# Source: openebs/charts/nfs-provisioner/templates/serviceaccount.yaml
+# Create Service Account for nfs-provisioner.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs-nfs-provisioner
+  namespace: openebs
+  labels:
+    chart: nfs-provisioner-0.11.0
+    heritage: Helm
+    openebs.io/version: "0.11.0"
+    app: nfs-provisioner
+    release: openebs
+    component: nfs-provisioner
+    openebs.io/component-name: openebs-nfs-provisioner
+---
+# Source: openebs/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openebs
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+---
+# Source: openebs/charts/jiva/templates/csi-iscsiadm-config.yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: openebs-jiva-csi-iscsiadm
+data:
+  iscsiadm: |
+    #!/bin/sh
+    if [ -x /host/sbin/iscsiadm ]; then
+      chroot /host /sbin/iscsiadm "$@"
+    elif [ -x /host/usr/local/sbin/iscsiadm ]; then
+      chroot /host /usr/local/sbin/iscsiadm "$@"
+    elif [ -x /host/bin/iscsiadm ]; then
+      chroot /host /bin/iscsiadm "$@"
+    elif [ -x /host/usr/local/bin/iscsiadm ]; then
+      chroot /host /usr/local/bin/iscsiadm "$@"
+    else
+      chroot /host iscsiadm "$@"
+    fi
+---
+# Source: openebs/templates/ndm/cm-node-disk-manager.yaml
+# This is the node-disk-manager related config.
+# It can be used to customize the disks probes and filters
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openebs-ndm-config
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+    component: ndm-config
+    openebs.io/component-name: ndm-config
+data:
+  # udev-probe is default or primary probe which should be enabled to run ndm
+  # filterconfigs contains configs of filters - in the form of include
+  # and exclude comma separated strings
+  node-disk-manager.config: |
+    probeconfigs:
+      - key: udev-probe
+        name: udev probe
+        state: true
+      - key: seachest-probe
+        name: seachest probe
+        state: false
+      - key: smart-probe
+        name: smart probe
+        state: true
+    filterconfigs:
+      - key: os-disk-exclude-filter
+        name: os disk exclude filter
+        state: true
+        exclude: "/,/etc/hosts,/boot"
+      - key: vendor-filter
+        name: vendor filter
+        state: true
+        include: ""
+        exclude: "CLOUDBYT,OpenEBS"
+      - key: path-filter
+        name: path filter
+        state: true
+        include: ""
+        exclude: "/dev/loop,/dev/fd0,/dev/sr0,/dev/ram,/dev/dm-,/dev/md,/dev/rbd,/dev/zd"
+---
+# Source: openebs/charts/jiva/templates/default-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-jiva-csi-default
+  annotations:
+provisioner: jiva.csi.openebs.io
+volumeBindingMode: Immediate
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+parameters:
+  cas-type: "jiva"
+  policy: openebs-jiva-default-policy
+---
+# Source: openebs/charts/nfs-provisioner/templates/kernel-nfs-storageclass.yaml
+# Storage classes for OpenEBS NFS Dynamic PV
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-kernel-nfs
+  annotations:
+    openebs.io/cas-type: nfsrwx
+    cas.openebs.io/config: |
+      - name: NFSServerType
+        value: kernel
+provisioner: openebs.io/nfsrwx
+reclaimPolicy: Delete
+---
+# Source: openebs/templates/localprovisioner/device-class.yaml
+# The second operand in the AND operation can be removed
+# when enableDeviceClass is deprecated.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-device
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "device"
+      - name: FSType
+        value: "ext4"
+provisioner: openebs.io/local
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+---
+# Source: openebs/templates/localprovisioner/hostpath-class.yaml
+# The second operand in the AND operation can be removed
+# when enableHostpathClass is deprecated.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: openebs-hostpath
+  annotations:
+    openebs.io/cas-type: local
+    cas.openebs.io/config: |
+      - name: StorageType
+        value: "hostpath"
+      - name: BasePath
+        value: "/var/openebs/local"
+provisioner: openebs.io/local
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-snapshotter-role
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["create", "get", "list", "watch", "update", "delete"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents/status"]
+    verbs: ["update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots/status"]
+    verbs: ["update"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "list", "watch", "delete", "get", "update"]
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-provisioner-role
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets","namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "get", "list", "watch" ]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "services"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "csinodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments"]
+    verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["jivavolumeattachments", "jivavolumes","jivavolumeconfigs"]
+    verbs: ["*"]
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+############################## CSI- Attacher #######################
+# Attacher must be able to work with PVs, nodes and VolumeAttachments
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-attacher-role
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["volumeattachments", "csinodes"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [ "storage.k8s.io" ]
+    resources: [ "volumeattachments/status" ]
+    verbs: [ "patch" ]
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-cluster-registrar-role
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+rules:
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["create", "delete"]
+---
+# Source: openebs/charts/jiva/templates/csi-node-rbac.yaml
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-registrar-role
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-node"
+    release: openebs
+    component: "openebs-jiva-csi-node"
+    openebs.io/component-name: "openebs-jiva-csi-node"
+rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes", "nodes", "services"]
+    verbs: ["get", "list", "patch"]
+  - apiGroups: ["*"]
+    resources: ["jivavolumes"]
+    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+---
+# Source: openebs/charts/jiva/templates/jiva-operator-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jiva-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - services/finalizers
+  - endpoints
+  - persistentvolumes
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - jiva-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - '*'
+- apiGroups:
+  - openebs.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+# Source: openebs/charts/nfs-provisioner/templates/clusterrole.yaml
+# Define Role that allows operations on K8s pods/deployments
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-nfs-provisioner
+  labels:
+    chart: nfs-provisioner-0.11.0
+    heritage: Helm
+    openebs.io/version: "0.11.0"
+    app: nfs-provisioner
+    release: openebs
+    component: nfs-provisioner
+    openebs.io/component-name: openebs-nfs-provisioner
+rules:
+  - apiGroups: ["*"]
+    resources: ["nodes", "nodes/proxy"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["namespaces", "services", "pods", "pods/exec", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets", "jobs", "cronjobs"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["statefulsets", "daemonsets"]
+    verbs: ["*"]
+  - apiGroups: ["*"]
+    resources: ["resourcequotas", "limitranges"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["ingresses", "horizontalpodautoscalers", "verticalpodautoscalers", "poddisruptionbudgets", "certificatesigningrequests"]
+    verbs: ["list", "watch"]
+  - apiGroups: ["*"]
+    resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["*"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: [ "get", "list", "create", "update", "delete", "patch"]
+  - apiGroups: ["openebs.io"]
+    resources: [ "*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+# Source: openebs/templates/clusterrole.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openebs
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+rules:
+- apiGroups: ["*"]
+  resources: ["nodes", "nodes/proxy"]
+  verbs: ["*"]
+- apiGroups: ["*"]
+  resources: ["namespaces", "services", "pods", "pods/exec", "deployments", "deployments/finalizers", "replicationcontrollers", "replicasets", "events", "endpoints", "configmaps", "secrets",  "jobs", "cronjobs" ]
+  verbs: ["*"]
+- apiGroups: ["*"]
+  resources: ["statefulsets", "daemonsets"]
+  verbs: ["*"]
+- apiGroups: ["*"]
+  resources: ["resourcequotas", "limitranges"]
+  verbs: ["list", "watch"]
+- apiGroups: ["*"]
+  resources: ["ingresses", "horizontalpodautoscalers", "verticalpodautoscalers", "poddisruptionbudgets", "certificatesigningrequests"]
+  verbs: ["list", "watch"]
+- apiGroups: ["*"]
+  resources: ["storageclasses", "persistentvolumeclaims", "persistentvolumes"]
+  verbs: ["*"]
+- apiGroups: ["volumesnapshot.external-storage.k8s.io"]
+  resources: ["volumesnapshots", "volumesnapshotdatas"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: [ "get", "list", "create", "update", "delete", "patch"]
+- apiGroups: ["openebs.io"]
+  resources: [ "*"]
+  verbs: ["*" ]
+- apiGroups: ["cstor.openebs.io"]
+  resources: [ "*"]
+  verbs: ["*" ]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "watch", "list", "delete", "update", "create"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+  verbs: ["get", "create", "list", "delete", "update", "patch"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update"]
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+# jiva csi roles and bindings
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-snapshotter-binding
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+subjects:
+  - kind: ServiceAccount
+    name: openebs-jiva-csi-controller-sa
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-jiva-csi-snapshotter-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-provisioner-binding
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+subjects:
+  - kind: ServiceAccount
+    name: openebs-jiva-csi-controller-sa
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-jiva-csi-provisioner-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-attacher-binding
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+subjects:
+  - kind: ServiceAccount
+    name: openebs-jiva-csi-controller-sa
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-jiva-csi-attacher-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/jiva/templates/csi-controller-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-cluster-registrar-binding
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+subjects:
+  - kind: ServiceAccount
+    name: openebs-jiva-csi-controller-sa
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-jiva-csi-cluster-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/jiva/templates/csi-node-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-csi-registrar-binding
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-node"
+    release: openebs
+    component: "openebs-jiva-csi-node"
+    openebs.io/component-name: "openebs-jiva-csi-node"
+subjects:
+  - kind: ServiceAccount
+    name: openebs-jiva-csi-node-sa
+    namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: openebs-jiva-csi-registrar-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/jiva/templates/jiva-operator-rbac.yaml
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-jiva-operator
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+subjects:
+- kind: ServiceAccount
+  name: openebs-jiva-operator
+  namespace: openebs
+roleRef:
+  kind: ClusterRole
+  name: jiva-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Source: openebs/charts/nfs-provisioner/templates/clusterrolebinding.yaml
+# Bind the Service Account with the Role Privileges.
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: openebs-nfs-provisioner
+  labels:
+    chart: nfs-provisioner-0.11.0
+    heritage: Helm
+    openebs.io/version: "0.11.0"
+    app: nfs-provisioner
+    release: openebs
+    component: nfs-provisioner
+    openebs.io/component-name: openebs-nfs-provisioner
+roleRef:
+  kind: ClusterRole
+  name: openebs-nfs-provisioner
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: openebs-nfs-provisioner
+    namespace: openebs
+---
+# Source: openebs/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openebs
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openebs
+subjects:
+- kind: ServiceAccount
+  name: openebs
+  namespace: openebs
+---
+# Source: openebs/charts/jiva/templates/csi-node.yaml
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: openebs-jiva-csi-node
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-node"
+    release: openebs
+    component: "openebs-jiva-csi-node"
+    openebs.io/component-name: "openebs-jiva-csi-node"
+spec:
+  selector:
+    matchLabels:
+      name: "openebs-jiva-csi-node"
+      release: openebs
+      component: "openebs-jiva-csi-node"
+  template:
+    metadata:
+      labels:
+        chart: jiva-3.6.0
+        heritage: Helm
+        openebs.io/version: "3.6.0"
+        name: "openebs-jiva-csi-node"
+        release: openebs
+        component: "openebs-jiva-csi-node"
+        openebs.io/component-name: "openebs-jiva-csi-node"
+    spec:
+      priorityClassName: openebs-jiva-csi-node-critical
+      serviceAccountName: openebs-jiva-csi-node-sa
+      hostNetwork: true
+      containers:
+        - name: csi-node-driver-registrar
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/csi-node-driver-registrar:v2.8.0"
+          imagePullPolicy: IfNotPresent
+          resources:
+            {}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--kubelet-registration-path=$(DRIVER_REG_SOCK_PATH)"
+          lifecycle:
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "rm -rf /registration/jiva.csi.openebs.io /registration/jiva.csi.openebs.io-reg.sock"]
+          env:
+            - name: ADDRESS
+              value: /plugin/csi.sock
+            - name: DRIVER_REG_SOCK_PATH
+              value: /var/lib/kubelet/plugins/jiva.csi.openebs.io/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NODE_DRIVER
+              value: openebs-jiva-csi
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /plugin
+            - name: registration-dir
+              mountPath: /registration
+        - name: jiva-csi-plugin
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+          image: "openebs/jiva-csi:3.6.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--name=jiva.csi.openebs.io"
+            - "--nodeid=$(OPENEBS_NODE_ID)"
+            - "--endpoint=$(OPENEBS_CSI_ENDPOINT)"
+            - "--plugin=$(OPENEBS_NODE_DRIVER)"
+            # enableiscsidebug is used to enable debug logs for iscsi operations
+            - "--enableiscsidebug=true"
+            # logging level for klog library used in k8s packages
+            #- "--v=5"
+            # retrycount is the max number of retries per nodeStaging rpc
+            # request on a timeout of 5 sec
+            # This count has been set to 20 for sanity test cases as it takes
+            # time in minikube
+            - "--retrycount=20"
+            # metricsBindAddress is the TCP address that the controller should bind to
+            # for serving prometheus metrics. By default the address is set to localhost:9505.
+            # The address can be configured to any desired address.
+            # Remove the flag to disable prometheus metrics.
+            - "--metricsBindAddress=:9505"
+          env:
+            - name: OPENEBS_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_CSI_ENDPOINT
+              value: unix:///plugin/csi.sock
+            - name: OPENEBS_NODE_DRIVER
+              value: node
+            - name: OPENEBS_CSI_API_URL
+              value: https://openebs.io
+              # OpenEBS namespace where the openebs jiva operator components
+              # has been installed
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+              # Enable/Disable auto-remount feature, when volumes
+              # recovers form the read-only state
+            - name: REMOUNT
+              value: "true"
+          volumeMounts:
+            - name: plugin-dir
+              mountPath: /plugin
+            - name: device-dir
+              mountPath: /dev
+            - name: pods-mount-dir
+              mountPath: /var/lib/kubelet/
+              # needed so that any mounts setup inside this container are
+              # propagated back to the host machine.
+              mountPropagation: "Bidirectional"
+            - name: host-root
+              mountPath: /host
+              mountPropagation: "HostToContainer"
+            - name: chroot-iscsiadm
+              mountPath: /sbin/iscsiadm
+              subPath: iscsiadm
+        - name: liveness-probe
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/livenessprobe:v2.10.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--csi-address=/plugin/csi.sock"
+          volumeMounts:
+          - mountPath: /plugin
+            name: plugin-dir
+      volumes:
+        - name: device-dir
+          hostPath:
+            path: /dev
+            type: Directory
+        - name: registration-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins_registry/
+            type: DirectoryOrCreate
+        - name: plugin-dir
+          hostPath:
+            path: /var/lib/kubelet/plugins/jiva.csi.openebs.io/
+            type: DirectoryOrCreate
+        - name: pods-mount-dir
+          hostPath:
+            path: /var/lib/kubelet/
+            type: Directory
+        - name: chroot-iscsiadm
+          configMap:
+            defaultMode: 0555
+            name: openebs-jiva-csi-iscsiadm
+        - name: host-root
+          hostPath:
+            path: /
+            type: Directory
+---
+# Source: openebs/templates/ndm/daemonset-ndm.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: openebs-ndm
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+    component: ndm
+    openebs.io/component-name: ndm
+    openebs.io/version: 3.10.0
+spec:
+  updateStrategy:
+    type: "RollingUpdate"
+  selector:
+    matchLabels:
+      app: openebs
+      release: openebs
+      component: ndm
+  template:
+    metadata:
+      labels:
+        app: openebs
+        release: openebs
+        component: ndm
+        openebs.io/component-name: ndm
+        name: openebs-ndm
+        openebs.io/version: 3.10.0
+    spec:
+      serviceAccountName: openebs
+      hostNetwork: true
+      # host PID is used to check status of iSCSI Service when the NDM
+      # API service is enabled
+      containers:
+      - name: openebs-ndm
+        image: "openebs/node-disk-manager:2.1.0"
+        args:
+          - -v=4
+          - --feature-gates=GPTBasedUUID
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        env:
+        # namespace in which NDM is installed will be passed to NDM Daemonset
+        # as environment variable
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        # pass hostname as env variable using downward API to the NDM container
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # specify the directory where the sparse files need to be created.
+        # if not specified, then sparse files will not be created.
+        - name: SPARSE_FILE_DIR
+          value: "/var/openebs/sparse"
+        # Size(bytes) of the sparse file to be created.
+        - name: SPARSE_FILE_SIZE
+          value: "10737418240"
+        # Specify the number of sparse files to be created
+        - name: SPARSE_FILE_COUNT
+          value: "0"
+        # Process name used for matching is limited to the 15 characters
+        # present in the pgrep output.
+        # So fullname can be used here with pgrep (cmd is < 15 chars).
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - "ndm"
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        volumeMounts:
+        - name: config
+          mountPath: /host/node-disk-manager.config
+          subPath: node-disk-manager.config
+          readOnly: true
+        - name: udev
+          mountPath: /run/udev
+        - name: procmount
+          mountPath: /host/proc
+          readOnly: true
+        - name: devmount
+          mountPath: /dev
+        - name: basepath
+          mountPath: /var/openebs/ndm
+        - name: sparsepath
+          mountPath: /var/openebs/sparse
+      volumes:
+      - name: config
+        configMap:
+          name: openebs-ndm-config
+      - name: udev
+        hostPath:
+          path: /run/udev
+          type: Directory
+      # mount /proc (to access mount file of process 1 of host) inside container
+      # to read mount-point of disks and partitions
+      - name: procmount
+        hostPath:
+          path: /proc
+          type: Directory
+      # the /dev directory is mounted so that we have access to the devices that
+      # are connected at runtime of the pod.
+      - name: devmount
+        hostPath:
+          path: /dev
+          type: Directory
+      - name: basepath
+        hostPath:
+          path: "/var/openebs/ndm"
+          type: DirectoryOrCreate
+      - name: sparsepath
+        hostPath:
+          path: /var/openebs/sparse
+      # By default the node-disk-manager will be run on all kubernetes nodes
+      # If you would like to limit this to only some nodes, say the nodes
+      # that have storage attached, you could label those node and use
+      # nodeSelector.
+      #
+      # e.g. label the storage nodes with - "openebs.io/nodegroup"="storage-node"
+      # kubectl label node <node-name> "openebs.io/nodegroup"="storage-node"
+      #nodeSelector:
+      #  "openebs.io/nodegroup": "storage-node"
+---
+# Source: openebs/charts/jiva/templates/jiva-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-jiva-operator
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "jiva-operator"
+    release: openebs
+    component: "jiva-operator"
+    openebs.io/component-name: "jiva-operator"
+spec:
+  selector:
+    matchLabels:
+      name: "jiva-operator"
+      release: openebs
+      component: "jiva-operator"
+  replicas: 
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        chart: jiva-3.6.0
+        heritage: Helm
+        openebs.io/version: "3.6.0"
+        name: "jiva-operator"
+        release: openebs
+        component: "jiva-operator"
+        openebs.io/component-name: "jiva-operator"
+    spec:
+      serviceAccountName: openebs-jiva-operator
+      containers:
+        - name: openebs-jiva-operator
+          imagePullPolicy: IfNotPresent
+          image: "openebs/jiva-operator:3.6.0"
+          command:
+          - jiva-operator
+          resources:
+            {}
+          env:
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "jiva-operator"
+            - name: OPENEBS_SERVICEACCOUNT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_JIVA_CONTROLLER_IMAGE
+              value: "openebs/jiva:3.6.0"
+            - name: OPENEBS_IO_JIVA_REPLICA_IMAGE
+              value: "openebs/jiva:3.6.0"
+            - name: OPENEBS_IO_MAYA_EXPORTER_IMAGE
+              value: "openebs/m-exporter:3.6.0"
+---
+# Source: openebs/charts/nfs-provisioner/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-nfs-provisioner
+  namespace: openebs
+  labels:
+    chart: nfs-provisioner-0.11.0
+    heritage: Helm
+    openebs.io/version: "0.11.0"
+    app: nfs-provisioner
+    release: openebs
+    component: nfs-provisioner
+    openebs.io/component-name: openebs-nfs-provisioner
+spec:
+  selector:
+    matchLabels:
+        app: nfs-provisioner
+        release: openebs
+        component: nfs-provisioner
+  replicas: 1
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  template:
+    metadata:
+      labels:
+        chart: nfs-provisioner-0.11.0
+        heritage: Helm
+        openebs.io/version: "0.11.0"
+        app: nfs-provisioner
+        release: openebs
+        component: nfs-provisioner
+        openebs.io/component-name: openebs-nfs-provisioner
+        name: openebs-nfs-provisioner
+    spec:
+      serviceAccountName: openebs-nfs-provisioner
+      containers:
+        - name: openebs-nfs-provisioner
+          imagePullPolicy: IfNotPresent
+          image: "openebs/provisioner-nfs:0.11.0"
+          env:
+            # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+            # based on this address. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_K8S_MASTER
+            #  value: "http://10.128.0.12:8080"
+            # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+            # based on this config. This is ignored if empty.
+            # This is supported for openebs provisioner version 0.5.2 onwards
+            #- name: OPENEBS_IO_KUBE_CONFIG
+            #  value: "/home/ubuntu/.kube/config"
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+            # environment variable
+            - name: OPENEBS_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+            - name: OPENEBS_IO_NFS_SERVER_USE_CLUSTERIP
+              value: "true"
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "nfs-helm"
+            # OPENEBS_IO_NFS_SERVER_IMG defines the nfs-server-alpine image name to be used
+            # while creating nfs volume
+            - name: OPENEBS_IO_NFS_SERVER_IMG
+              value: "openebs/nfs-server-alpine:0.11.0"
+            # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
+            # leader election is enabled.
+            - name: LEADER_ELECTION_ENABLED
+              value: "true"
+            # OPENEBS_IO_NFS_SERVER_NODE_AFFINITY defines the node affinity rules to place NFS Server
+            # instance. It accepts affinity rules in multiple ways:
+            # - If NFS Server needs to be placed on storage nodes as well as only in
+            #   zone-1 & zone-2 then value can be:
+            #   value:  "kubernetes.io/zone:[zone-1,zone-2],kubernetes.io/storage-node".
+            # - If NFS Server needs to be placed only on storage nodes & nfs nodes then
+            #   value can be:
+            #   value:  "kubernetes.io/storage-node,kubernetes.io/nfs-node"
+            # Provide a switch to turn off the function of clearing stale pvc to avoid
+            # garbage collecting an NFS backend PVC if the NFS PVC is deleted.
+            - name: OPENEBS_IO_NFS_SERVER_GARBAGE_COLLECTION_ENABLED
+              value: "true"
+          # Process name used for matching is limited to the 15 characters
+          # present in the pgrep output.
+          # So fullname can't be used here with pgrep (>15 chars).A regular expression
+          # that matches the entire command name has to specified.
+          # Anchor `^` : matches any string that starts with `provisioner-nfs`
+          # `.*`: matches any string that has `provisioner-loc` followed by zero or more char
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - test `pgrep "^provisioner-nfs.*"` = 1
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          volumeMounts:
+            # Mounting hook-config volume into nfs-provisioner config directory
+      volumes:
+        # hook-config volume uses ConfigMap 'hook-config' to load hook configuration
+---
+# Source: openebs/templates/localprovisioner/deployment-local-provisioner.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-localpv-provisioner
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+    component: localpv-provisioner
+    openebs.io/component-name: openebs-localpv-provisioner
+    openebs.io/version: 3.10.0
+spec:
+  replicas: 1
+  strategy:
+    type: "Recreate"
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app: openebs
+      release: openebs
+  template:
+    metadata:
+      labels:
+        app: openebs
+        release: openebs
+        component: localpv-provisioner
+        name: openebs-localpv-provisioner
+        openebs.io/component-name: openebs-localpv-provisioner
+        openebs.io/version: 3.10.0
+    spec:
+      serviceAccountName: openebs
+      containers:
+      - name: openebs-localpv-provisioner
+        image: "openebs/provisioner-localpv:3.5.0"
+        imagePullPolicy: IfNotPresent
+        args:
+          - "--bd-time-out=$(BDC_BD_BIND_RETRIES)"
+        env:
+        # OPENEBS_IO_K8S_MASTER enables openebs provisioner to connect to K8s
+        # based on this address. This is ignored if empty.
+        # This is supported for openebs provisioner version 0.5.2 onwards
+        #- name: OPENEBS_IO_K8S_MASTER
+        #  value: "http://10.128.0.12:8080"
+        # OPENEBS_IO_KUBE_CONFIG enables openebs provisioner to connect to K8s
+        # based on this config. This is ignored if empty.
+        # This is supported for openebs provisioner version 0.5.2 onwards
+        #- name: OPENEBS_IO_KUBE_CONFIG
+        #  value: "/home/ubuntu/.kube/config"
+        # This sets the number of times the provisioner should try
+        # with a polling interval of 5 seconds, to get the Blockdevice
+        # Name from a BlockDeviceClaim, before the BlockDeviceClaim
+        # is deleted. E.g. 12 * 5 seconds = 60 seconds timeout
+        - name: BDC_BD_BIND_RETRIES
+          value: "12"
+        # OPENEBS_NAMESPACE is the namespace that this provisioner will
+        # lookup to find maya api service
+        - name: OPENEBS_NAMESPACE
+          value: "openebs"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # OPENEBS_SERVICE_ACCOUNT provides the service account of this pod as
+        # environment variable
+        - name: OPENEBS_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        # OPENEBS_IO_BASE_PATH is the environment variable that provides the
+        # default base path on the node where host-path PVs will be provisioned.
+        - name: OPENEBS_IO_ENABLE_ANALYTICS
+          value: "true"
+        - name: OPENEBS_IO_BASE_PATH
+          value: "/var/openebs/local"
+        - name: OPENEBS_IO_HELPER_IMAGE
+          value: "openebs/linux-utils:3.5.0"
+        - name: OPENEBS_IO_INSTALLER_TYPE
+          value: "charts-helm"
+        # LEADER_ELECTION_ENABLED is used to enable/disable leader election. By default
+        # leader election is enabled.
+        - name: LEADER_ELECTION_ENABLED
+          value: "true"
+        # Process name used for matching is limited to the 15 characters
+        # present in the pgrep output.
+        # So fullname can't be used here with pgrep (>15 chars).A regular expression
+        # that matches the entire command name has to specified.
+        # Anchor `^` : matches any string that starts with `provisioner-loc`
+        # `.*`: matches any string that has `provisioner-loc` followed by zero or more char
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - test `pgrep -c "^provisioner-loc.*"` = 1
+          initialDelaySeconds: 30
+          periodSeconds: 60
+---
+# Source: openebs/templates/ndm/deployment-ndm-operator.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openebs-ndm-operator
+  labels:
+    app: openebs
+    chart: openebs-3.10.0
+    release: openebs
+    heritage: Helm
+    component: ndm-operator
+    openebs.io/component-name: ndm-operator
+    openebs.io/version: 3.10.0
+    name: ndm-operator
+spec:
+  replicas: 1
+  strategy:
+    type: "Recreate"
+    rollingUpdate: null
+  selector:
+    matchLabels:
+      app: openebs
+      release: openebs
+  template:
+    metadata:
+      labels:
+        app: openebs
+        release: openebs
+        component: ndm-operator
+        name: ndm-operator
+        openebs.io/component-name: ndm-operator
+        openebs.io/version: 3.10.0
+    spec:
+      serviceAccountName: openebs
+      containers:
+      - name: openebs-ndm-operator
+        image: "openebs/node-disk-operator:2.1.0"
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8585
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8585
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
+        - name: OPERATOR_NAME
+          value: "node-disk-operator"
+        - name: CLEANUP_JOB_IMAGE
+          value: "openebs/linux-utils:3.5.0"
+---
+# Source: openebs/charts/jiva/templates/csi-controller.yaml
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: openebs-jiva-csi-controller
+  labels:
+    chart: jiva-3.6.0
+    heritage: Helm
+    openebs.io/version: "3.6.0"
+    name: "openebs-jiva-csi-controller"
+    release: openebs
+    component: "openebs-jiva-csi-controller"
+    openebs.io/component-name: "openebs-jiva-csi-controller"
+spec:
+  selector:
+    matchLabels:
+      name: "openebs-jiva-csi-controller"
+      release: openebs
+      component: "openebs-jiva-csi-controller"
+  serviceName: "openebs-csi"
+  replicas: 
+  template:
+    metadata:
+      labels:
+        chart: jiva-3.6.0
+        heritage: Helm
+        openebs.io/version: "3.6.0"
+        name: "openebs-jiva-csi-controller"
+        release: openebs
+        component: "openebs-jiva-csi-controller"
+        openebs.io/component-name: "openebs-jiva-csi-controller"
+    spec:
+      priorityClassName: openebs-jiva-csi-controller-critical
+      serviceAccountName: openebs-jiva-csi-controller-sa
+      containers:
+        - name: csi-resizer
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/csi-resizer:v1.8.0"
+          resources:
+            {}
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+            - "--leader-election"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-provisioner
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/csi-provisioner:v3.5.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--csi-address=$(ADDRESS)"
+            - "--v=5"
+            - "--feature-gates=Topology=true"
+            - "--extra-create-metadata=true"
+            - "--metrics-address=:22011"
+            - "--timeout=250s"
+            - "--default-fstype=ext4"
+          env:
+            - name: MY_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: csi-attacher
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/csi-attacher:v4.3.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--v=5"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: jiva-csi-plugin
+          image: "openebs/jiva-csi:3.6.0"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPENEBS_JIVA_CSI_CONTROLLER
+              value: controller
+            - name: OPENEBS_JIVA_CSI_ENDPOINT
+              value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+            - name: OPENEBS_CSI_API_URL
+              value: https://openebs.io
+            - name: OPENEBS_NODEID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+              # OpenEBS namespace where the openebs jiva operator components
+              # has been installed
+            - name: OPENEBS_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPENEBS_IO_INSTALLER_TYPE
+              value: "jiva-helm"
+            - name: OPENEBS_IO_ENABLE_ANALYTICS
+              value: "true"
+          args :
+            - "--endpoint=$(OPENEBS_JIVA_CSI_ENDPOINT)"
+            - "--plugin=$(OPENEBS_JIVA_CSI_CONTROLLER)"
+            - "--name=jiva.csi.openebs.io"
+            - "--nodeid=$(OPENEBS_NODEID)"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: liveness-probe
+          image: "registry.cn-hangzhou.aliyuncs.com/mageedu_mirrors/livenessprobe:v2.3.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--csi-address=/csi/csi.sock"
+          volumeMounts:
+          - mountPath: /csi
+            name: socket-dir
+      volumes:
+        - name: socket-dir
+          emptyDir: {}
+---
+# Source: openebs/charts/jiva/templates/csi-driver.yaml
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: jiva.csi.openebs.io
+spec:
+  podInfoOnMount: true
+  attachRequired: false
+---
+# Source: openebs/charts/jiva/templates/default-policy.yaml
+apiVersion: openebs.io/v1alpha1
+kind: JivaVolumePolicy
+metadata:
+  name: openebs-jiva-default-policy
+spec:
+  replicaSC: openebs-hostpath
+  target:
+    replicationFactor: 2
+
